@@ -24,6 +24,7 @@
       entries: "entradas",
       words: "palabras",
       readings: "lecturas",
+      editorials: "editoriales",
       quickIndex: "Índice rápido",
       entriesTitle: "Entradas y lecturas",
       search: "Buscar",
@@ -41,7 +42,6 @@
       copyFailed: "No se pudo copiar",
       previous: "Anterior",
       next: "Siguiente",
-      pages: "pág.",
       footer: "Lectura crítica. Sin descargas PDF.",
       blogLabel: "Blog",
       readingLabel: "Lectura crítica",
@@ -65,6 +65,7 @@
     entryCount: document.getElementById("entryCount"),
     wordCount: document.getElementById("wordCount"),
     readingCount: document.getElementById("readingCount"),
+    editorialCount: document.getElementById("editorialCount"),
     resultCount: document.getElementById("resultCount"),
     postList: document.getElementById("postList"),
     reader: document.getElementById("reader"),
@@ -267,6 +268,7 @@
     if (selectors.statLabels[0]) selectors.statLabels[0].textContent = labels.entries;
     if (selectors.statLabels[1]) selectors.statLabels[1].textContent = labels.words;
     if (selectors.statLabels[2]) selectors.statLabels[2].textContent = labels.readings;
+    if (selectors.statLabels[3]) selectors.statLabels[3].textContent = labels.editorials;
     if (selectors.toolbarEyebrow) selectors.toolbarEyebrow.textContent = labels.quickIndex;
     if (selectors.toolbarTitle) selectors.toolbarTitle.textContent = labels.entriesTitle;
     if (selectors.searchLabel) selectors.searchLabel.textContent = labels.search;
@@ -282,6 +284,7 @@
     selectors.entryCount.textContent = formatNumber(posts.length);
     selectors.wordCount.textContent = formatNumber(posts.reduce((total, post) => total + post.wordCount, 0));
     selectors.readingCount.textContent = formatNumber(posts.filter((post) => post.kind === "reading").length);
+    selectors.editorialCount.textContent = formatNumber(posts.filter((post) => post.kind === "editorial").length);
     selectors.firstPostLink.href = postUrl(posts[0].slug);
   }
 
