@@ -6,6 +6,12 @@
   }
 
   const posts = blog.posts;
+  const postCache = new Map(
+    posts
+      .filter((post) => Array.isArray(post.paragraphs))
+      .map((post) => [post.slug, post])
+  );
+  let readerRequestId = 0;
   const copy = {
       locale: "es",
       title: blog.title,
@@ -25,6 +31,7 @@
       all: "Todo",
       essay: "Ensayo",
       reading: "Lecturas",
+      editorial: "Editoriales",
       index: "Índice",
       result: "resultado",
       results: "resultados",
@@ -136,6 +143,26 @@
     return match ? decodeURIComponent(match[1]) : posts[0].slug;
   }
 
+  function postDataUrl(slug) {
+    return `./data/posts/${slug}.json`;
+  }
+
+  async function loadFullPost(post) {
+    if (Array.isArray(post.paragraphs)) {
+      return post;
+    }
+    if (postCache.has(post.slug)) {
+      return { ...post, ...postCache.get(post.slug) };
+    }
+    const response = await fetch(postDataUrl(post.slug), { cache: "force-cache" });
+    if (!response.ok) {
+      throw new Error(`No se pudo cargar ${post.slug}`);
+    }
+    const fullPost = { ...post, ...(await response.json()) };
+    postCache.set(post.slug, fullPost);
+    return fullPost;
+  }
+
   function localizedPost(post) {
     return {
       title: post.title,
@@ -144,7 +171,7 @@
       sourceLabel: post.sourceLabel,
       excerpt: post.excerpt,
       tags: post.tags,
-      paragraphs: post.paragraphs,
+      paragraphs: Array.isArray(post.paragraphs) ? post.paragraphs : [],
     };
   }
 
@@ -475,14 +502,37 @@
     selectors.pageEngagement.replaceChildren(buildEngagement(post));
   }
 
-  function renderReader(slug) {
+  async function renderReader(slug) {
+    const requestId = ++readerRequestId;
     const foundIndex = posts.findIndex((item) => item.slug === slug);
     const activeIndex = foundIndex >= 0 ? foundIndex : 0;
     const post = posts[activeIndex];
-    const localized = localizedPost(post);
     const previousPost = posts[activeIndex - 1];
     const nextPost = posts[activeIndex + 1];
     const labels = ui();
+
+    if (!Array.isArray(post.paragraphs) && !postCache.has(post.slug)) {
+      const loading = document.createElement("p");
+      loading.className = "empty";
+      loading.textContent = "Cargando lectura...";
+      selectors.reader.replaceChildren(loading);
+    }
+
+    let fullPost;
+    try {
+      fullPost = await loadFullPost(post);
+    } catch (error) {
+      const fallback = document.createElement("p");
+      fallback.className = "empty";
+      fallback.textContent = "No se pudo cargar esta entrada.";
+      selectors.reader.replaceChildren(fallback);
+      return;
+    }
+    if (requestId !== readerRequestId) {
+      return;
+    }
+
+    const localized = localizedPost(fullPost);
     const header = document.createElement("header");
     header.className = "reader__head";
 
@@ -527,7 +577,7 @@
     header.appendChild(actions);
 
     const body = document.createElement("div");
-    body.className = `reader__body reader__body--${post.kind}`;
+    body.className = `reader__body reader__body--${fullPost.kind}`;
     body.lang = language;
     localized.paragraphs.forEach((paragraph) => {
       const p = document.createElement("p");
